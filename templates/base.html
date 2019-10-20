@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+{#  Define base structure of app: call up leaflet, omnivore         #}
+{#                                top-of-page menu,                 #}
+{#                                flask progress / flashed messages #}
+{#                                content (map)                     #}
+{#                                footer with copyright notice      #}
+{# Note: expects title to be defined, falls back if not             #}
+{#       extending pages expect saluation to be defined             #}
+<head>
+    {% if title %}
+    <title>{{ title }} </title>
+    {% else %}
+    <title>Leaflet Example</title>
+    {% endif %}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+    {% include "leafletstyle.html" %}
+
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">Web Mapping:</h1>
+            <ul class="menu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('esrimap') }}">ESRI Map</a></li>
+            </ul>
+
+        </div>
+    </header>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    <hr>
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+
+    <div id="footer">
+        <span class="tiny">
+            Copyright © Don Cameron, 2019. www.net-analysis.com
+        </span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+
+
+<script>
+    // map will be automatically pan and zoomed to match dataset bounds, so lat, lng values
+    // will eventually be overwriten
+
+    var defaultZoom = 13;
+    var mymap = L.map('mapid').setView([153.0, -26.5], defaultZoom);
+    var layer = L.esri.basemapLayer('Topographic').addTo(mymap);
+    var layerLabels;
+
+    // function to effect change of basemap
+    function setBasemap (basemap) {
+        if (layer) {
+            mymap.removeLayer(layer);
+        }
+
+        layer = L.esri.basemapLayer(basemap);
+        mymap.addLayer(layer);
+
+        if (layerLabels) {
+            mymap.removeLayer(layerLabels);
+        }
+
+        if (
+            basemap === 'ShadedRelief' ||
+            basemap === 'Oceans' ||
+            basemap === 'Gray' ||
+            basemap === 'DarkGray' ||
+            basemap === 'Terrain'
+        ) {
+            layerLabels = L.esri.basemapLayer(basemap + 'Labels');
+            mymap.addLayer(layerLabels);
+        } else if (basemap.includes('Imagery')) {
+            layerLabels = L.esri.basemapLayer('ImageryLabels');
+            mymap.addLayer(layerLabels);
+        };
+    };
+
+    document
+    .querySelector('#basemaps')
+    .addEventListener('change', function (e) {
+      var basemap = e.target.value;
+      setBasemap(basemap);
+    });
+
+    // // Good cloud free imagery
+    // L.esri.basemapLayer('Imagery').addTo(mymap);
+    // L.esri.basemapLayer('ImageryLabels').addTo(mymap);
+
+    // -------------- other ESRI options for base map --------------
+
+    // Streets and roads, some terrain
+    // L.esri.basemapLayer('Streets').addTo(mymap);
+
+    // LANDSAT view, clouds
+    // L.esri.imageMapLayer({
+    //  url: 'https://landsat.arcgis.com/arcgis/rest/services/Landsat/PS/ImageServer',
+    //  attribution: 'United States Geological Survey (USGS), National Aeronautics and Space Administration (NASA)'
+    // }).addTo(mymap);
+
+    // very low resolution
+    // var url = 'https://sampleserver3.arcgisonline.com/ArcGIS/rest/services/World/MODIS/ImageServer';
+    // L.esri.imageMapLayer({
+    //                         url: url,
+    //                         opacity: 0.95,
+    //                         // only necessary for old versions of ArcGIS Server
+    //                         useCors: false
+    //                     }).addTo(mymap);
+
+    // -------------- end of ESRI options for base map --------------
+
+    // add click to show lat, lon
+    var popup = L.popup();
+
+    function onMapClick(e) {
+        popup
+            .setLatLng(e.latlng)
+            .setContent("You clicked the map at " + e.latlng.toString())
+            .openOn(mymap);
+    }
+    mymap.on('click', onMapClick);
+    
+
+    //set up a customized icon to use for the point data
+    var customIcon = L.icon({
+        iconUrl: "{{ url_for('static', filename = 'bluecircle2.png') }}"  ,
+        iconSize: [16, 16], //size of the icon in pixels
+        iconAnchor: [8, 8], //point of the icon which will correspond to marker's location (the center)
+        popupAnchor: [0, 0] //point from which the popup should open relative to the iconAnchor
+    });
+
+    // mapBounds could be  updated by each marker.  We do not use it, as we don't care
+    // about existing bounds, but if we did, we would fit map to these Bounds
+    // var mapBounds = mymap.getBounds();
+
+    var clusteredMarkers = L.markerClusterGroup();
+    var pts = omnivore.csv("{{ url_for('static', filename = 'cleanedsitedetails.csv') }}")
+    .on('ready', function(layer){
+                                this.eachLayer(function(marker){
+                                marker.setIcon(customIcon);
+
+                                marker.bindTooltip(marker.toGeoJSON().properties.sitecode, {permanent: false, direction: 'right'})
+
+                                var popupText = marker.toGeoJSON().properties.sitecode + '<br/>'+
+                                marker.toGeoJSON().properties.sitename + '<br/>' +
+                                marker.toGeoJSON().properties.waterway + '<br/> ' +
+                                marker.toGeoJSON().properties.waterbodytype;
+                                marker.bindPopup(popupText);
+
+                                clusteredMarkers.addLayer(marker);
+                                
+                                // var ll = marker.getLatLng();
+                                // mapBounds.extend(ll);
+
+                            });
+                        }
+        );
+
+    
+    //pts.addTo(mymap);
+    mymap.addLayer(clusteredMarkers);
+
+    pts.on('ready', function(){
+        mymap.fitBounds(pts.getBounds(), {animate: false});
+    });
+
+
+    // add scale to map (show only metric)
+    L.control.scale({imperial: false, position: 'topleft'}).addTo(mymap);
+</script>
